@@ -12,11 +12,10 @@ from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import select, delete, Column, Integer, Float, String, DateTime, func, Index
 from flask_migrate import Migrate
 import requests
-# === 新增：模型部署區（匯入套件） ===
 from pathlib import Path
 import os, joblib, torch, numpy as np
-from demo.modal.ft_transformer import FTTransformer 
-# ================================
+from model.ft_transformer import FTTransformer 
+
 app = Flask(__name__, static_folder="static")
 app.jinja_env.filters['from_json'] = json.loads
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///squat_analysis1.db'
@@ -59,7 +58,7 @@ APP_DIR = Path(__file__).resolve().parent
 W_PATH  = Path(os.environ.get("W_PATH", APP_DIR / "model_weights.pt"))
 M_PATH  = Path(os.environ.get("M_PATH", APP_DIR / "preprocess_meta.pkl"))
 
-# 自動選 GPU；可用環境變數 DEVICE=cuda / cpu 強制
+
 _device_env = os.environ.get("DEVICE", "auto").lower()
 if _device_env == "cuda" and torch.cuda.is_available():
     DEVICE = "cuda"
@@ -92,7 +91,6 @@ def _load_model_once():
         return
 
     print(f"[INFO] loading weights (safe): {W_PATH}")
-    # ✅ 安全讀取：只載張量（未來 PyTorch 預設也是 True）
     state_dict = torch.load(str(W_PATH), map_location=DEVICE, weights_only=True)
 
     ckpt_meta = joblib.load(str(M_PATH))
@@ -142,7 +140,7 @@ def _softmax(logits: torch.Tensor) -> np.ndarray:
 # --------------------------
 @app.route('/')
 def index():
-    # 確保模型在首頁就載入（若找不到也不會中斷）
+    # 確保模型在首頁就載入
     _load_model_once()
     return render_template('upload.html')
 
@@ -207,7 +205,7 @@ def save_user_summary(username: str, avg_score: float, squat_count: int, keep: i
 
     db.session.commit()
 
-# 新增：鏡頭即時分析首頁跳轉
+# 鏡頭即時分析首頁跳轉
 @app.route('/realtime')
 def realtime_page():
     username = request.args.get('username')
@@ -397,7 +395,6 @@ def api_delete_summary_one(sum_id):
         db.session.rollback()
         return jsonify({"ok": False, "error": str(e)}), 500
 
-# === 新增：模型部署區（健康檢查與推論 API） ===
 @app.get("/health")
 def health():
     _load_model_once()
@@ -426,7 +423,7 @@ def predict():
         else:
             payload[c] = v  # 直接覆寫為 float
 
-    # 若 target_ratio 沒填但 target_weight / current_weight 具備 → 自動計
+    
     if "target_ratio" in ckpt_meta["cont_cols"]:
         if (payload.get("target_ratio") is None) and (payload.get("target_weight") is not None) and (payload.get("current_weight") not in (None, 0.0)):
             payload["target_ratio"] = float(payload["target_weight"]) / float(payload["current_weight"])
@@ -451,7 +448,6 @@ def predict():
 @app.get("/predict_demo")
 def predict_demo():
     _load_model_once()
-    # 從 ckpt_meta 把各類別欄位的可選值取出（若尚未載入則給空）
     options = {}
     categ_cols = []
     cont_cols = []
@@ -469,11 +465,6 @@ def predict_demo():
                            categ_cols=categ_cols,
                            cont_cols=cont_cols)
 
-# ================================
-
-# --------------------------
-# 啟動 Flask Server
-# --------------------------
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
