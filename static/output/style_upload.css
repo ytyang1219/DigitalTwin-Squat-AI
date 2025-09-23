@@ -1,0 +1,86 @@
+*{
+  font-family: 微軟正黑體;
+}
+.mb-4{
+  text-align: center;
+  font-weight: 600;
+}
+.welcome-section {
+    background: linear-gradient(135deg, white 0%,  #eeda6b 100%);
+    color:  #113F67;
+    padding: 30px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.welcome-section h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+.welcome-section p {
+    font-size: 1.1em;
+    line-height: 1.6em;
+}
+.carousel-indicators [data-bs-target] {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;}
+.card.pic {
+    width: var(--pic-w);                 /* 卡片寬度 = 圖片寬度 */
+  }
+/* 讓所有 .row 裡的 .card 都有粗黑邊框 */
+.card {
+  border: 1.5px solid #b8c4cf !important;
+  /* 或你想要的顏色、粗細 */
+}
+.card-title {
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+  color: #113F67 !important;
+}
+.card.pic .card-img-top {
+    width: 100%;                         
+    height: var(--pic-h);                
+    object-fit: cover;                  
+    display: block;
+}
+.card-header{
+  font-weight: 700 !important;
+  font-size: 1.4rem !important;
+  background-color: #b9cbd4 !important;
+  color: #113F67 !important;
+}
+.form-label{
+  font-weight: 800 !important;
+}
+#username{
+  border: 1.5px solid #b8c4cf !important;
+}
+#squat_type{
+  border: 1.5px solid #b8c4cf !important;
+}
+.emoji {
+  display: inline-block;
+  opacity: 0;
+  animation: blink 1.5s infinite;
+}
+
+.emoji0  { animation-delay: 0s; }
+.emoji1  { animation-delay: 0.5s; }
+.emoji2  { animation-delay: 0.9s; }
+.emoji3  { animation-delay: 1.3s; }
+
+@keyframes blink {
+  0%   { opacity: 0; transform: scale(0.9);}
+  50%  { opacity: 1; transform: scale(1.2);}
+  100% { opacity: 0; transform: scale(0.9);}
+}
+
+.loading-text {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #555;
+}

@@ -1,0 +1,25 @@
+<table>
+  <tr>
+    <th>使用者</th>
+    <th>類型</th>
+    <th>時間</th>
+    <th>操作</th>
+  </tr>
+  {% for rec in records %}
+  <tr>
+    <td>{{ rec.username }}</td>
+    <td>{{ rec.squat_type }}</td>
+    <td>{{ rec.timestamp }}</td>
+    <td>
+      <form method="POST" action="{{ url_for('delete_history', record_id=rec.id) }}">
+        <button type="submit">刪除</button>
+      </form>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="4">
+      <pre>{{ rec.report_json }}</pre>
+    </td>
+  </tr>
+  {% endfor %}
+</table>

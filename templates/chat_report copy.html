@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI 健身教練 - 聊天報告</title>
+    <style>
+        * {
+            font-family: 微軟正黑體;
+        }
+        .text-center {
+            text-align: center;
+            font-weight: 600
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #113F67;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #b9cbd4;
+            color: #134a7a;
+            font-weight: 600;
+        }
+        .chat-container {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            background-color: #f9f9f9;
+        }
+        .message-row {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .user-row {
+            justify-content: flex-end;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #113F67;
+            color: white;
+            font-weight: 600;
+        }
+        .bot-message {
+            background-color: #e2e2e2;
+            color: #333;
+            font-weight: 600;
+        }
+        #input-area {
+            display: flex;
+            margin-top: 10px;
+        }
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-button {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            background-color: #113F67;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="text-center">{{ username }}的深蹲分析報告</h1>
+
+    <table>
+        <tr>
+            <th>index</th>
+            <th>深度-右</th>
+            <th>深度-左</th>
+            <th>腳尖角度-右</th>
+            <th>腳尖角度-左</th>
+            <th>膝蓋與腳尖差異角度-右</th>
+            <th>膝蓋與腳尖差異角度-左</th>
+            <th>問題</th>
+            <th>分數 (滿分100分)</th>
+        </tr>
+        {% set report_table = report_json | from_json %}
+        {% for row in report_table %}
+        <tr>
+            <td>{{ row.index }}</td>
+            <td>{{ row.right_depth }}</td>
+            <td>{{ row.left_depth }}</td>
+            <td>{{ row.right_foot_angle_3d }}</td>
+            <td>{{ row.left_foot_angle_3d }}</td>
+            <td>{{ row.right_diff }}</td>
+            <td>{{ row.left_diff }}</td>
+            <td>{{ row.issues }}</td>
+            <td>{{ row.total_score }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p>次數: {{ squat_count }}，平均分數: {{ average_score }}分</p>
+    <hr style="margin: 40px 0;">
+    <h2>AI 健身教練的總結</h2>
+    <p style="margin-bottom: 5px;">
+    💡對分析報告有任何疑問，歡迎隨時在下方輸入框提問！
+    例如：「膝蓋內夾怎麼改善？」或「重心穩定有什麼秘訣？」
+    </p>
+    <div class="chat-container" id="messages-container">
+        </div>
+    
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="對深蹲報告有疑問嗎？">
+        <button id="send-button">發送</button>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messages-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        let conversationId = null;
+        const userId = '{{ username }}'; 
+
+        function addMessage(text, sender) {
+            const messageRow = document.createElement('div');
+            messageRow.classList.add('message-row');
+            if (sender === 'user') {
+                messageRow.classList.add('user-row');
+            }
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', `${sender}-message`);
+            messageDiv.textContent = text;
+            messageRow.appendChild(messageDiv);
+            messagesContainer.appendChild(messageRow);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendToBackend(message) {
+            const payload = {
+                message: message,
+                user_id: userId,
+                conversation_id: conversationId
+            };
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (!conversationId) {
+                        conversationId = data.conversation_id;
+                    }
+                    addMessage(data.answer, 'bot');
+                } else {
+                    addMessage('連線失敗，請稍後再試。', 'bot');
+                }
+            } catch (error) {
+                console.error('API 錯誤:', error);
+                addMessage('連線失敗，請稍後再試。', 'bot');
+            }
+        }
+        
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            // 從 URL 參數取得 JSON 數據
+            const reportJson = urlParams.get('report');
+            const reportData = JSON.parse(reportJson);
+
+            // 構建第一條訊息，包含 JSON 數據
+            const initialQuery = `請根據這個深蹲數據分析：${JSON.stringify(reportData, null, 2)}`;
+            
+            // 顯示使用者發送的初始 JSON 訊息，並發送 API 呼叫
+            addMessage(`我的深蹲數據：\n${JSON.stringify(reportData, null, 2)}`, 'user');
+            sendToBackend(initialQuery);
+        };
+
+        sendButton.addEventListener('click', () => {
+            const userMessage = userInput.value.trim();
+            if (userMessage) {
+                addMessage(userMessage, 'user');
+                sendToBackend(userMessage);
+                userInput.value = '';
+            }
+        });
+    </script>
+        <h2>深蹲影片</h2>
+    <video width="720" height="480" controls>
+        <source src="{{ url_for('static', filename=video_path) }}" type="video/mp4">
+        您的瀏覽器不支援影片播放。
+    </video>
+    <h3>錯誤的深蹲畫面：</h3>
+    <div>
+        {% set error_images = error_images_json | from_json %}
+        {% for item in error_images %}
+        <div style="margin-bottom:20px;">
+            <div style="font-weight:bold;">第 {{ item.squat_id }} 次深蹲</div>
+            <img src="{{ url_for('static', filename=item.img_path) }}" style="max-width:400px;">
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

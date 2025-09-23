@@ -1,0 +1,140 @@
+<!-- templates/summary_last10.html -->
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>最近十筆（平均分數/次數）</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <style>
+    .form-label{font-weight:600}
+    .form-control,.card{border:1.5px solid #b8c4cf!important}
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-sm-6">
+        <label class="form-label">輸入想查詢的使用者名稱</label>
+        <input id="uid" class="form-control" placeholder="alice">
+      </div>
+      <div class="col-sm-3">
+        <button id="load" class="btn btn-primary w-100">載入</button>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-body">
+        <canvas id="chart" height="120"></canvas>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-body table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>時間</th>
+              <th class="text-end">平均分數</th>
+              <th class="text-end">總次數</th>
+              <th class="text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let chart;
+
+    async function loadData(){
+      const u = document.getElementById('uid').value.trim();
+      if(!u){ alert('請輸入使用者'); return; }
+
+      const res = await fetch(`/api/summary?username=${encodeURIComponent(u)}`);
+      if(!res.ok){
+        const msg = await res.text();
+        alert(`讀取失敗（${res.status}）：${msg}`);
+        return;
+      }
+      const js = await res.json();
+      const data = js.data || [];
+
+      // 表格
+      const tb = document.getElementById('tb');
+      tb.innerHTML = '';
+      data.forEach((r, i) => {
+        const when = r.t ? new Date(r.t).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${when}</td>
+          <td class="text-end">${Number(r.avg ?? 0).toFixed(2)}</td>
+          <td class="text-end">${r.cnt ?? 0}</td>
+          <td class="text-center">
+            <button class="btn btn-outline-danger btn-sm" onclick="delSummary(${r.id}, this)">刪除</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+
+      // 圖表
+      const labels = data.map((_, i) => (i+1).toString());
+      const avg = data.map(x => x.avg);
+      const cnt = data.map(x => x.cnt);
+
+      if(chart) chart.destroy();
+      Chart.defaults.font.size = 16;
+      chart = new Chart(document.getElementById('chart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: '平均分數', data: avg, yAxisID: 'y1' }, // 移除 tension
+            { label: '總次數',  data: cnt, yAxisID: 'y2' }  // 移除 tension
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          stacked: false,
+          // 全域強制直線（避免未來誤加平滑）
+          elements: { line: { tension: 0 } },
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 16 } } },
+            tooltip: { bodyFont: { size: 14 }, titleFont: { size: 16 } }
+          },
+          scales: {
+            x: { ticks: { font: { size: 14 } } },
+            y1: { type: 'linear', position: 'left', beginAtZero: true,
+                  title: { display: true, text: 'Score', font: { size: 18 } },
+                  ticks: { font: { size: 14 } } },
+            y2: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
+                  title: { display: true, text: 'Count', font: { size: 18 } },
+                  ticks: { font: { size: 14 } } }
+          }
+        }
+      });
+    }
+
+    async function delSummary(id, btn){
+      if(!confirm('確定刪除此筆資料？')) return;
+      const res = await fetch(`/api/summary/${id}`, { method: 'DELETE' });
+      const j = await res.json().catch(()=>({ok:false,error:'invalid response'}));
+      if(res.ok && j.ok){
+        // 移除表格列
+        btn.closest('tr').remove();
+        // 重新載入資料以同步圖表
+        loadData();
+      }else{
+        alert('刪除失敗：' + (j.error || `HTTP ${res.status}`));
+      }
+    }
+
+    document.getElementById('load').addEventListener('click', loadData);
+  </script>
+</body>
+</html>

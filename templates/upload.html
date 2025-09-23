@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>你的AI深蹲教練</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='output/style_upload.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+    crossorigin="anonymous"></script>
+</head>
+
+<body class="bg-light">
+  <main class="container px-md-4 px-lg-5 py-4">
+
+    <h1 class="mb-4">你的AI深蹲教練</h1>
+    <div class="welcome-section">
+      <p>
+        這裡不只能幫你矯正深蹲動作，
+        還能貼心提醒怎麼改才更標準<br>
+        每次練完還會幫你記錄分數、次數，甚至預測下週的專屬課表<br>
+        拍一支影片或直接開啟即時分析模式，讓我們一起開始變強吧！💪
+      </p>
+    </div>
+    <!-- 區塊：1. 輸入個人資料 -->
+    <section class="card mt-4">
+      <div class="card-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-1-circle-fill"
+          viewBox="0 0 16 16">
+          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M9.283 4.002H7.971L6.072 5.385v1.271l1.834-1.318h.065V12h1.312z" />
+        </svg> 輸入個人資料
+      </div>
+
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+
+
+          <div class="col-md-7">
+            <form id="analyzeForm" enctype="multipart/form-data">
+              <!-- 放在左上：個人資料 -->
+              <label for="username" class="form-label">使用者名稱*</label>
+              <input type="text" id="username" name="username" class="form-control mb-2" required>
+
+              <label for="squat_type" class="form-label">選擇深蹲高度*</label>
+              <select id="squat_type" name="squat_type" class="form-select mb-3" required>
+                <option value="quarter">四分之一蹲</option>
+                <option value="half">半蹲</option>
+                <option value="parallel">平行深蹲</option>
+                <option value="full">全蹲</option>
+              </select>
+              <div class="form-text">（可參考下方深度圖）</div><br>
+
+
+
+
+              <!-- 深蹲高度圖片卡片（放在表單下方） -->
+              <div class="card">
+                <img src="{{ url_for('static', filename='output/depth.png') }}" class="card-img-top img-depth"
+                  alt="深度參考圖片">
+                <div class="card-body">
+                  <h5 class="card-title mb-2">深蹲高度</h5>
+                  <p class="card-text mb-0">
+                    (A) 四分之一蹲 110–140°<br>
+                    (B) 半蹲 80–100°<br>
+                    (C) 平行深蹲 60–80°（常見）<br>
+                    (D) 全蹲 40–50°
+                  </p>
+                </div>
+              </div>
+          </div>
+
+
+          <!-- 右側：檢測標準卡片 -->
+          <div class="col-md-5">
+            <div class="card h-100 text-center shadow-sm">
+              <img src="{{ url_for('static', filename='output/squatpic.png') }}" class="card-img-top img-standard"
+                alt="深蹲參考圖片">
+              <div class="card-body">
+                <h5 class="card-title text-start mb-2">檢測標準</h5>
+                <p class="card-text text-start mb-0">
+                  1. 深度需在選擇範圍內<br>
+                  2. 重心須保持一致<br>
+                  3. 膝蓋需與腳尖方向一致<br>
+                  4. 腳尖外開 15–40°
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- 檢測方式 -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-2-circle-fill"
+          viewBox="0 0 16 16">
+          <path
+            d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M6.646 6.24c0-.691.493-1.306 1.336-1.306.756 0 1.313.492 1.313 1.236 0 .697-.469 1.23-.902 1.705l-2.971 3.293V12h5.344v-1.107H7.268v-.077l1.974-2.22.096-.107c.688-.763 1.287-1.428 1.287-2.43 0-1.266-1.031-2.215-2.613-2.215-1.758 0-2.637 1.19-2.637 2.402v.065h1.271v-.07Z" />
+        </svg>
+        選擇檢測方式 (二選一)
+      </div>
+      <br>
+      <h6 class="card-title" style="margin-left: 20px;">💡深蹲拍攝規範</h6>
+      <p class="card-text" style="margin-left: 20px;">
+        1.拍攝方向必須為正面，與人體平行，盡量保持相機水平，並以髖部為畫面中心點，避免傾斜或側拍。<br>
+        2.雙腿在動作開始時需完全伸直。<br>
+        3.不可使用廣角鏡頭，避免畫面變形。
+      </p>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <!-- 影片分析 -->
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                    fill="currentColor" class="bi bi-cloud-upload-fill" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                      d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0" />
+                  </svg> 影片分析</h5>
+                <p class="card-text">選擇正面深蹲影片（限 mp4 檔案）</p>
+                <input type="file" id="video" name="video" accept="video/mp4" class="form-control mb-3">
+                <button type="submit" class="btn btn-primary">開始分析</button>
+                </form>
+
+                <div id="emojiLoading" style="display:none; text-align:center; font-size:40px;">
+                  <span class="emoji emoji0">🏋️‍♂️</span>
+                  <span class="emoji emoji1">💪</span>
+                  <span class="emoji emoji2">🔥</span>
+                  <span class="emoji emoji3">⏳</span>
+                  <div class="loading-text">影片分析中，請稍候...</div>
+                </div>
+
+                <script>
+                  const form = document.getElementById('analyzeForm');
+                  const emojiDiv = document.getElementById('emojiLoading');
+
+                  form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const username = form.username.value.trim();
+                    const squat_type = form.squat_type.value;
+
+                    if (!username || !squat_type) {
+                      alert('請先填寫使用者名稱與選擇深蹲類型！');
+                      return;
+                    }
+
+                    emojiDiv.style.display = 'block';
+
+                    try {
+                      const resp = await fetch('/analyze_ajax', { method: 'POST', body: new FormData(form) });
+                      if (!resp.ok) throw new Error('伺服器回應非 200');
+                      const result = await resp.json();  // 若後端非 JSON，這裡會 throw
+                      if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                      } else {
+                        alert('分析失敗或未回傳 redirect_url');
+                      }
+                    } catch (err) {
+                      alert('送出失敗：' + err.message);
+                    } finally {
+                      emojiDiv.style.display = 'none';
+                    }
+                  });
+                </script>
+              </div>
+            </div>
+          </div>
+
+          <!-- 即時分析 -->
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                    fill="currentColor" class="bi bi-camera-video-fill" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd"
+                      d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2z" />
+                  </svg> 即時分析</h5>
+                <p class="card-text">1. 可用手機下載 iVCam 或使用無廣角 webcam。<br>
+                  2. 啟動即時分析時，請先擺出 T-pose：雙手平舉至與地面平行，雙腿併攏站直。
+                </p>
+                <button onclick="redirectToRealtime()" class="btn btn-primary">啟動鏡頭</button>
+                <script>
+                  function redirectToRealtime() {
+                    const username = document.getElementById('username').value.trim();
+                    const squat_type = document.getElementById('squat_type').value;
+                    if (!username || !squat_type) {
+                      alert('請先填寫使用者名稱與選擇深蹲類型！');
+                      return;
+                    }
+                    const url = `/realtime?username=${encodeURIComponent(username)}&squat_type=${encodeURIComponent(squat_type)}`;
+                    window.location.href = url;
+                  }
+                </script>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 底列：功能入口 -->
+    <div class="row g-3 mt-4">
+      <div class="col-sm-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">歷史紀錄</h5>
+            <p class="card-text">包含每次深蹲次數、平均分數 …</p>
+            <a href="{{ url_for('summary_page') }}" class="btn btn-primary">查看</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">推薦下週課表</h5>
+            <p class="card-text">使用 FT-Transformer 模型預測最適合你的下週課表。</p>
+            <a href="#" class="btn btn-primary">Go</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-4">
+
+  </main>
+</body>
+
+</html>

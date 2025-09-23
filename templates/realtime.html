@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <title>即時深蹲分析</title>
+    <style>
+        body {
+            font-family: "微軟正黑體", Arial, sans-serif;
+            margin: 30px;
+            background: #f8f8fb;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+        }
+
+        .video-section {
+            width: 780px;
+        }
+
+        #videoStream {
+            border-radius: 8px;
+            border: 2px solid #bbb;
+        }
+
+        #infoPanel {
+            font-size: 18px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 1px 2px 6px #d0d0ee33;
+            padding: 15px;
+            min-width: 370px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #113F67;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #b9cbd4;
+            color: #134a7a;
+            font-weight: 600 !important;
+            font-size: 1.2rem !important;
+        }
+
+        tr:nth-child(even) {
+            background: #f6f8ff;
+        }
+
+        .title {
+            font-weight: 600;
+        }
+        
+
+        #username,
+        #squat_type {
+            color: #445;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="title">即時深蹲分析</h1>
+    <div>使用者：<span id="username">{{ username }}</span>　類型：<span id="squat_type">{{ squat_type }}</span></div>
+    <br>
+    <div class="container">
+        <div class="video-section">
+            <img id="videoStream" src="/video_feed?squat_type={{ squat_type }}" width="780" height="450">
+        </div>
+        <div id="infoPanel">
+            <b>{{username}}的深蹲分析結果</b>
+            <br>分析中...
+        </div>
+    </div>
+    <br>
+    <button onclick="saveAndEnd()">結束並儲存分析</button>
+    <script>
+        let source = new EventSource('/analysis_stream');
+        source.onmessage = function (event) {
+            let table = JSON.parse(event.data);
+            if (!table.length) {
+                document.getElementById('infoPanel').innerHTML = "<b>動作分析分數表</b><br>尚未有有效深蹲紀錄...";
+                return;
+            }
+            let html = `<b>動作分析分數表</b><br><table>
+            <tr>
+                <th>次數</th><th>右腿深度</th><th>左腿深度</th>
+                <th>膝蓋與腳尖差異角度-右</th><th>膝蓋與腳尖差異角度-左</th><th>問題</th><th>總分</th>
+            </tr>`;
+            for (let row of table) {
+                html += `<tr>
+                <td>${row.index}</td>
+                <td>${row.right_depth}</td>
+                <td>${row.left_depth}</td>
+                <td>${row.right_diff}</td>
+                <td>${row.left_diff}</td>
+                <td>${row.issues}</td>
+                <td>${row.total_score}</td>
+            </tr>`;
+            }
+            html += `</table>`;
+            document.getElementById('infoPanel').innerHTML = html;
+        };
+
+        function saveAndEnd() {
+            // 待分析結束存資料用，依你的API調整
+            fetch('/save_realtime_result', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json;charset=utf-8' },
+                body: JSON.stringify({
+                    username: document.getElementById('username').innerText,
+                    squat_type: document.getElementById('squat_type').innerText,
+                    report_table: JSON.parse(JSON.stringify(window.lastTableData || [])),
+                    average_score: getAvgScore(),
+                    squat_count: getSquatCount()
+                })
+            }).then(res => res.json()).then(d => {
+                alert('已儲存分析！');
+                window.location.href = "/history?username=" + encodeURIComponent(document.getElementById('username').innerText);
+            });
+        }
+        // 根據你 SSE 格式可自行補平均分數和次數
+        function getAvgScore() {
+            let table = window.lastTableData || [];
+            if (!table.length) return 0;
+            let sum = table.map(r => parseFloat(r.total_score)).reduce((a, b) => a + b, 0);
+            return (sum / table.length).toFixed(2);
+        }
+
+    </script>
+</body>
+
+</html>
