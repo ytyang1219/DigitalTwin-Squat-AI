@@ -11,14 +11,14 @@ from run_realtime import gen_video_stream, get_latest_analysis_info
 from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import select, delete, Column, Integer, Float, String, DateTime, func, Index
 from flask_migrate import Migrate
-import requests
+
 # === 新增：模型部署區（匯入套件） ===
 from pathlib import Path
 import os, joblib, torch, numpy as np
 from demo.modal.ft_transformer import FTTransformer 
 # ================================
+
 app = Flask(__name__, static_folder="static")
-app.jinja_env.filters['from_json'] = json.loads
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///squat_analysis1.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db, compare_type=True)
@@ -27,13 +27,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 Base = db.Model
 
-api_url = "http://localhost/v1/chat-messages"  # Dify 本地部署 API 端點
-api_key = "app-lAcz4GKJGnPp1w7rrbmUl8jg"  # 你的金鑰
-
-headers = {
-    "Authorization": f"Bearer {api_key}",
-    "Content-Type": "application/json"
-}
 # 資料庫中「分析紀錄」的結構
 class AnalysisHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -152,18 +145,17 @@ def index():
 @app.route('/analyze_ajax', methods=['POST'])
 def analyze_video_ajax():
     video_file = request.files['video']
-    username = request.form['username']
-    squat_type = request.form["squat_type"]
 
     # 儲存使用者上傳的影片
     filename = str(uuid.uuid4()) + ".mp4"
     video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     video_file.save(video_path)
 
-    # 執行分析，現在會回傳 conversation_id
-    llm_answer, report_table, result_video_path, error_image_paths, average_score, squat_count, conversation_id = run_squat_analysis(video_path, squat_type)
+    # 執行分析，回傳分析報告與 HTML5 相容影片路徑
+    username = request.form['username']
+    squat_type = request.form["squat_type"]
+    answer, report_table, result_video_path, error_image_paths, average_score, squat_count = run_squat_analysis(video_path, squat_type)
 
-    # 儲存分析結果到資料庫
     history_entry = AnalysisHistory(
         username=username,
         squat_type=squat_type,
@@ -178,18 +170,16 @@ def analyze_video_ajax():
 
     save_user_summary(username, average_score, squat_count)
 
-    # 將所有結果和 conversation_id 傳遞給 chat_report_page
-    redirect_url = url_for("chat_report_page",
+    redirect_url = url_for("result_page",
                             username=username,
                             squat_type=squat_type,
-                            answer=llm_answer,
-                            conversation_id=conversation_id, # 正確地傳遞 conversation_id
-                            report=json.dumps(report_table, ensure_ascii=False),
+                            report=json.dumps(report_table),
                             video=result_video_path,
-                            images=json.dumps(error_image_paths, ensure_ascii=False),
+                            images=json.dumps(error_image_paths),
                             score=average_score,
+                            answer=answer,
                             count=squat_count)
-                            
+
     return jsonify({'redirect_url': redirect_url})
 
 def save_user_summary(username: str, avg_score: float, squat_count: int, keep: int = 10):
@@ -253,64 +243,27 @@ def save_realtime_result():
     db.session.add(history_entry)
     db.session.commit()
     return jsonify({'status': 'ok'})
-@app.route('/api/chat', methods=['POST'])
-def api_chat():
-    data = request.json
-    user_message = data.get('message')
-    user_id = data.get('user_id')
-    conversation_id = data.get('conversation_id')
 
-    payload = {
-        "inputs": {},
-        "query": user_message,
-        "response_mode": "blocking",
-        "conversation_id": conversation_id, # 傳遞對話 ID
-        "user": user_id
-    }
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(api_url, headers=headers, json=payload)
-        response.raise_for_status()
-        dify_response = response.json()
-        
-        return jsonify({
-            "answer": dify_response["answer"],
-            "conversation_id": dify_response["conversation_id"]
-        })
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling Dify API: {e}")
-        return jsonify({"error": "無法從 AI 取得回覆"}), 500
-
-
-@app.route('/chat_report')
-def chat_report_page():
-    # 這裡從 URL 參數接收 Dify 的第一條回覆和對話 ID
+@app.route('/result')
+def result_page():
     username = request.args.get('username')
+    answer = request.args.get('answer')
     squat_type = request.args.get('squat_type')
-    llm_answer = request.args.get('answer') # 接收 Dify 的回覆
-    conversation_id = request.args.get('conversation_id') # 接收對話 ID
-    
-    report = request.args.get('report')
-    video = request.args.get('video')
-    images = request.args.get('images')
-    score = request.args.get('score')
-    count = request.args.get('count')
+    report_table = json.loads(request.args.get('report'))
+    video_path = request.args.get('video')
+    error_images = json.loads(request.args.get('images'))
+    average_score = request.args.get('score')
+    squat_count = request.args.get('count')
 
-    return render_template("chat_report.html",
+    return render_template("result.html",
+        answer=answer,
+        report_table=report_table,
+        video_path=video_path,
+        error_images=error_images,
         username=username,
         squat_type=squat_type,
-        llm_answer=llm_answer,
-        conversation_id=conversation_id,
-        report_json=report,
-        video_path=video,
-        error_images_json=images,
-        average_score=score,
-        squat_count=count
+        average_score=average_score,
+        squat_count=squat_count
     )
 
 # 歷史紀錄

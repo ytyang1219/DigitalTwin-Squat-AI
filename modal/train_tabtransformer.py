@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # 你的 FT-Transformer 實作
-from ft_transformer import FTTransformer
+from demo.modal.ft_transformer import FTTransformer
 # from tab_transformer_pytorch import TabTransformer
-from ft_transformer import FTTransformer
+from demo.modal.ft_transformer import FTTransformer
 
 
 
