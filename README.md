@@ -42,7 +42,3 @@
 - 採用 **端到端架構**  
 - 使用 **Flask 網頁介面** 整合分析流程  
 - 訓練數據以 **雙軸折線圖** 呈現，讓使用者直觀掌握自身表現  
-
-
-
-<img width="601" height="1175" alt="image" src="https://github.com/user-attachments/assets/40a83e6f-eb4e-4ede-b5ba-c8aa245fde65" />
