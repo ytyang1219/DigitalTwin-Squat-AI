@@ -15,6 +15,8 @@ import requests
 from pathlib import Path
 import os, joblib, torch, numpy as np
 from model.ft_transformer import FTTransformer 
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__, static_folder="static")
 app.jinja_env.filters['from_json'] = json.loads
@@ -26,14 +28,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 Base = db.Model
 
-api_url = "http://localhost/v1/chat-messages"  # Dify 本地部署 API 端點
-api_key = "app-lAcz4GKJGnPp1w7rrbmUl8jg"  # 你的金鑰
+api_url = "http://localhost/v1/chat-messages"  # Dify 本地部署 API 端點  
+api_key = os.environ.get("DIFY_API_KEY")  # 從環境變數讀取
 
 headers = {
     "Authorization": f"Bearer {api_key}",
     "Content-Type": "application/json"
 }
-# 資料庫中「分析紀錄」的結構
+# 資料庫中分析紀錄的結構
 class AnalysisHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), nullable=False)
