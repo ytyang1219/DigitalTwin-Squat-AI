@@ -12,7 +12,7 @@ def run_squat_analysis(video_path,squat_type):
     from mediapipe.framework.formats import landmark_pb2
     import uuid
     api_url = "http://localhost/v1/chat-messages"  # Dify 本地部署 API 端點
-    api_key = "app-lAcz4GKJGnPp1w7rrbmUl8jg"  # 你的金鑰
+    api_key = os.environ.get("DIFY_API_KEY")  # 你的金鑰
 
     headers = {
         "Authorization": f"Bearer {api_key}",
