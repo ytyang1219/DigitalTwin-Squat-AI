@@ -198,11 +198,10 @@ def load_model_for_infer(weights_path="model_weights.pt",
                          meta_path="preprocess_meta.pkl",
                          model_cls=FTTransformer,
                          device="cpu"):
-    # 安全讀取：只載張量權重（未來 PyTorch 預設亦為 True）
+    # 安全讀取：只載張量權重
     try:
         state_dict = torch.load(weights_path, map_location=device, weights_only=True)
     except TypeError:
-        # 舊版 PyTorch 沒有 weights_only 參數時回退
         state_dict = torch.load(weights_path, map_location=device)
 
     meta_local = joblib.load(meta_path)
